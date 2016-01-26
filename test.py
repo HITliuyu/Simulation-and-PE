@@ -149,7 +149,7 @@ def simu(time, scale = 1):
     
 # when scale = 0.003, I get good queueing data in buffer
 if __name__ == '__main__':
-    simu(1000, 0.003) 
+    simu(1000) 
 
 
 
