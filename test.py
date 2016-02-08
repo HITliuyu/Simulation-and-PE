@@ -60,6 +60,10 @@ def simu(time, scale = 1):
     successReceivedPkt = {x : 0 for x in range(node_amount)}
     collisionPkt = {x : 0 for x in range(node_amount)}
 
+    totalSentPkt = {x : 0 for x in range(node_amount)}
+    successSentPkt = {x : 0 for x in range(node_amount)}
+    collisionSentPkt = {x : 0 for x in range(node_amount)}
+
     sched = EventScheduler()
     for i in range(node_amount):
         sched.schedule_event(numpy.random.rayleigh(scale), numpy.random.binomial(4150,0.662) + 32, i, TASK)
@@ -134,6 +138,12 @@ def simu(time, scale = 1):
                 totalReceivedPkt[node] += 1 #pkt received by this node add one, no matter if it's collision
                 if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
                     successReceivedPkt[node] += 1
+            totalSentPkt[qnum] += 1
+            for node in receiver[qnum]:
+                if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
+                    successSentPkt[qnum] += 1
+                    break
+
 
             if customer[qnum] > 0: #if there still are some pkt in the buffer, set another deadline task for next pkt in the buffer
                 ddl[qnum] = sched.time + bufferedPktSize[qnum].pop(0)/SPEED
@@ -196,17 +206,26 @@ def simu(time, scale = 1):
 
     for i in range(len(totalReceivedPkt)):
         collisionPkt[i] = totalReceivedPkt[i] - successReceivedPkt[i]
+        collisionSentPkt[i] = totalSentPkt[i] - successSentPkt[i]
     print("totally received pkt:",totalReceivedPkt)
     print("successfully received pkt:",successReceivedPkt)
     print("collision pkt:",collisionPkt)
     print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
+
+    print("totally sent pkt:",totalSentPkt)
+    print("successfully sent pkt:",successSentPkt)
+    print("Sent collision pkt:",collisionSentPkt)
+    print("Sent collision rate:" ,{i:(collisionSentPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
+
 
         
 
     
 # when scale = 0.003, I get good queueing data in buffer
 if __name__ == '__main__':
-    simu(10, 0.003) 
-
+    # for i in range(3,11):
+    #     simu(10, i/1000)
+    #     print("**************************\n")
+    simu(10,0.003)
 
 
