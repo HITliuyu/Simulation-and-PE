@@ -14,8 +14,8 @@ RX = 'rx'
 BUFFERSIZE = 30
 SPEED = 1024*1024
 
-DDLTASK = 'ddltask'
-TASK = 'task'
+DDLTASK = 'ddltask' #deadline task
+TASK = 'task' #arrival task
 
 class EventScheduler:
     def __init__(self):
@@ -80,6 +80,11 @@ def simu(time, scale = 1):
         # print ("--------------")
 
         pktsize, qnum ,tasktype = sched.pop_event()
+        #if qnum == 4:
+            # print ("state: ",state)
+            # print ("customer: ",customer)
+            # print ("lock: ",lock)
+            # print ("--------------")
         
         if tasktype == TASK:
             sched.schedule_event(numpy.random.rayleigh(scale), numpy.random.binomial(4150,0.662) + 32, qnum, TASK)
@@ -99,9 +104,9 @@ def simu(time, scale = 1):
                         if qnum not in lock[q]:
                             lock[q].append(qnum)
                         receiver[qnum].append(q)
-                        pass # collision
                     else:
-                        pass #seems not possbile
+
+                        pass 
                 sched.schedule_event((ddl[qnum] - sched.time), 0, qnum, DDLTASK)
                 sched.order()
 
@@ -122,43 +127,51 @@ def simu(time, scale = 1):
                     bufferLoss[qnum] += 1 #buffer loss
 
         else: #ddltask
-            for qn in receiver[qnum]:
-                totalReceivedPkt[qn] += 1
             for node in receiver[qnum]:
-                print(qnum)
-                print(lock[node])
-                print(state[node])
+                # print(qnum)
+                # print(lock[node])
+                # print(state[node])
+                totalReceivedPkt[node] += 1 #pkt received by this node add one, no matter if it's collision
                 if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
                     successReceivedPkt[node] += 1
-            #collisionPkt[qnum] = totalReceivedPkt[qnum] - successReceivedPkt[qnum]
 
-            if customer[qnum] > 0:
+            if customer[qnum] > 0: #if there still are some pkt in the buffer, set another deadline task for next pkt in the buffer
                 ddl[qnum] = sched.time + bufferedPktSize[qnum].pop(0)/SPEED
                 customer[qnum] -= 1
                 sched.schedule_event((ddl[qnum] - sched.time), 0, qnum, DDLTASK)
                 sched.order()
+                for q in neighbour[qnum]: #make sure all neighbours entering idle state will be involved in qnum
+                    if state[q] == IDLE:
+                        state[q] = RX
+                        lock[q].append(qnum)
+                        receiver[qnum].append(q)
 
-            else:
+
+            else: #if the buffer is empty and this is the last pkt's deadline task
                 state[qnum] = IDLE
                 for q in receiver[qnum]:
                     lock[q].remove(qnum)
                     if not lock[q]:
                         state[q] = IDLE
-                    
+                for q in receiver[qnum]:    
                     if customer[q] > 0 and not lock[q]:
                         state[q] = TX
                         ddl[q] = sched.time + bufferedPktSize[q].pop(0)/SPEED
                         customer[q] -=1
 
                         for i in neighbour[q]:
-                            if i in neighbour[qnum]:
-                                if qnum in lock[i]:
-                                    pass
+                            if i in neighbour[qnum]: #if this node is the shared neighbour of qnum and q, we have to do special handing
+                                if state[i] == IDLE:
+                                    if len(lock[i]) == 0 and customer[i] == 0:
+                                        state[i] = RX
+                                        lock[i].append(q)
+                                        receiver[q].append(i)
+                                elif state[i] == RX:
+                                    lock[i].append(q)
+                                    receiver[q].append(i)
                                 else:
-                                    if state[i] == TX:
-                                        print ('-----yes-----')
-                                    print ('pass')
-                                    pass #collision
+                                    pass
+
                             elif state[i] == IDLE:
                                 state[i] = RX
                                 lock[i].append(q)
@@ -167,9 +180,8 @@ def simu(time, scale = 1):
                                 if q not in lock[i]:
                                     lock[i].append(q)
                                 receiver[q].append(i)
-                                pass # collision
                             else:
-                                pass #seems not possbile
+                                pass 
                         sched.schedule_event((ddl[q] - sched.time), 0, q, DDLTASK)
                         sched.order()
 
@@ -184,8 +196,8 @@ def simu(time, scale = 1):
 
     for i in range(len(totalReceivedPkt)):
         collisionPkt[i] = totalReceivedPkt[i] - successReceivedPkt[i]
-    print("totally sent pkt:",totalReceivedPkt)
-    print("successfully sent pkt:",successReceivedPkt)
+    print("totally received pkt:",totalReceivedPkt)
+    print("successfully received pkt:",successReceivedPkt)
     print("collision pkt:",collisionPkt)
     print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
 
