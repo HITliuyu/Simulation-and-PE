@@ -56,8 +56,8 @@ def simu(time, scale = 1):
     bufferLoss = {x : 0 for x in range(node_amount)}   # lost pkt
     bufferTotal = {x : 0 for x in range(node_amount)} #totally generated pkt
 
-    totalSentPkt = {x : 0 for x in range(node_amount)}
-    successPkt = {x : 0 for x in range(node_amount)}
+    totalReceivedPkt = {x : 0 for x in range(node_amount)}
+    successReceivedPkt = {x : 0 for x in range(node_amount)}
     collisionPkt = {x : 0 for x in range(node_amount)}
 
     sched = EventScheduler()
@@ -122,15 +122,15 @@ def simu(time, scale = 1):
                     bufferLoss[qnum] += 1 #buffer loss
 
         else: #ddltask
-            totalSentPkt[qnum] += 1
+            for qn in receiver[qnum]:
+                totalReceivedPkt[qn] += 1
             for node in receiver[qnum]:
                 print(qnum)
                 print(lock[node])
                 print(state[node])
                 if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
-                    successPkt[qnum] += 1
-                    break
-            collisionPkt[qnum] = totalSentPkt[qnum] - successPkt[qnum]
+                    successReceivedPkt[node] += 1
+            #collisionPkt[qnum] = totalReceivedPkt[qnum] - successReceivedPkt[qnum]
 
             if customer[qnum] > 0:
                 ddl[qnum] = sched.time + bufferedPktSize[qnum].pop(0)/SPEED
@@ -182,10 +182,12 @@ def simu(time, scale = 1):
     print("totally generated pkt :",bufferTotal)
     print("buffer loss rate:", {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)})
 
-    print("totally sent pkt:",totalSentPkt)
-    print("successfully sent pkt:",successPkt)
+    for i in range(len(totalReceivedPkt)):
+        collisionPkt[i] = totalReceivedPkt[i] - successReceivedPkt[i]
+    print("totally sent pkt:",totalReceivedPkt)
+    print("successfully sent pkt:",successReceivedPkt)
     print("collision pkt:",collisionPkt)
-    print("collision rate:" ,{i:(collisionPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
+    print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
 
         
 
