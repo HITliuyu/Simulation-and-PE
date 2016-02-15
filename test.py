@@ -69,9 +69,9 @@ def simu(time, scale = 1):
         sched.schedule_event(numpy.random.rayleigh(scale), numpy.random.binomial(4150,0.662) + 32, i, TASK)
     sched.order()
 
-    filename = "simudata" + str(scale) + ".csv"
-    fp = open(filename, "w")
-    fp.write("time,q0len,q1len\n")
+    # filename = "simudata" + str(scale) + ".csv"
+    # fp = open(filename, "w")
+    # fp.write("time,q0len,q1len\n")
 
     while sched.time < time:
         sched.order()
@@ -198,24 +198,51 @@ def simu(time, scale = 1):
                 receiver[qnum] = []
                 bufferedPktSize[qnum] = []
 
-        fp.write(str(sched.time) + "," + ",".join([str(el) for el in customer.values()]) + "\n")
-    fp.close()
-    print("bufferLoss :",bufferLoss)    
-    print("totally generated pkt :",bufferTotal)
-    print("buffer loss rate:", {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)})
+    #     fp.write(str(sched.time) + "," + ",".join([str(el) for el in customer.values()]) + "\n")
+    # fp.close()
+    
+    # print("bufferLoss :",bufferLoss)    
+    # print("totally generated pkt :",bufferTotal)
+    # print("buffer loss rate:", {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)})
 
     for i in range(len(totalReceivedPkt)):
         collisionPkt[i] = totalReceivedPkt[i] - successReceivedPkt[i]
         collisionSentPkt[i] = totalSentPkt[i] - successSentPkt[i]
-    print("totally received pkt:",totalReceivedPkt)
-    print("successfully received pkt:",successReceivedPkt)
-    print("collision pkt:",collisionPkt)
-    print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
+    # print("totally received pkt:",totalReceivedPkt)
+    # print("successfully received pkt:",successReceivedPkt)
+    # print("collision pkt:",collisionPkt)
+    # print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
 
-    print("totally sent pkt:",totalSentPkt)
-    print("successfully sent pkt:",successSentPkt)
-    print("Sent collision pkt:",collisionSentPkt)
-    print("Sent collision rate:" ,{i:(collisionSentPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
+    # print("totally sent pkt:",totalSentPkt)
+    # print("successfully sent pkt:",successSentPkt)
+    # print("Sent collision pkt:",collisionSentPkt)
+    # print("Sent collision rate:" ,{i:(collisionSentPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
+    filename1 = "collision1000" + ".csv"
+    #filename1 = "collision_scale" + ".csv"
+    fp = open(filename1, "a")
+    #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    collisionrate = {i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)}
+    fp.write(str(collisionrate[0]) + "," +",".join([str(collisionrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.close()
+
+    filename2 = "loss1000" + ".csv"
+    #filename2 = "loss_scale" + ".csv"
+    fp = open(filename2, "a")
+    #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
+    fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.close()
+
+    filename3 = "throughput1000" + ".csv"
+    #filename2 = "loss_scale" + ".csv"
+    fp = open(filename3, "a")
+    #fp.write(str(successReceivedPkt[0]/10) + "," +",".join([str(successReceivedPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    fp.write(str(successSentPkt[0]/10) + "," +",".join([str(successSentPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    #lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
+    #fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.close()
+
+
 
 
         
@@ -223,9 +250,41 @@ def simu(time, scale = 1):
     
 # when scale = 0.003, I get good queueing data in buffer
 if __name__ == '__main__':
-    # for i in range(3,11):
-    #     simu(10, i/1000)
-    #     print("**************************\n")
-    simu(10,0.003)
+    # filename1 = "collision_scale" + ".csv"
+    # fp = open(filename1, "a")
+    # #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    # fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    # fp.close()
+
+    # filename2 = "loss_scale" + ".csv"
+    # fp = open(filename2, "a")
+    # #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    # fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    # fp.close()
+
+    filename1 = "collision1000" + ".csv"
+    fp = open(filename1, "a")
+    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.close()
+
+    filename2 = "loss1000" + ".csv"
+    fp = open(filename2, "a")
+    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.close()
+
+    filename3 = "throughput1000" + ".csv"
+    fp = open(filename3, "a")
+    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.close()
+
+
+    for i in range(2, 11):
+        simu(10, i/100)
+        #print("**************************\n")
+
+    #simu(10,0.003)
 
 
