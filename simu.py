@@ -11,10 +11,10 @@ IDLE = 'idle'
 TX = 'tx'
 RX = 'rx'
 BUFFERSIZE = 30
-SPEED = 1024*1024
+SPEED =8*1024*1024   #transmitted speed
 
 DDLTASK = 'ddltask' #deadline task
-TASK = 'task' #arrival task
+TASK = 'arrivaltask' #arrival task
 
 class EventScheduler:
     def __init__(self):
@@ -84,11 +84,10 @@ def simu(time, scale = 1):
         sched.order()
         pktsize, qnum ,tasktype = sched.pop_event()
                 
-        if tasktype == TASK:
+        if tasktype == TASK: #arrival task
             sched.schedule_event(numpy.random.rayleigh(scale), numpy.random.binomial(4150,0.662) + 32, qnum, TASK)
-            sched.order()
 
-            bufferTotal[qnum] += 1
+            bufferTotal[qnum] += pktsize
 
             if state[qnum] == IDLE:
                 state[qnum] = TX
@@ -106,7 +105,6 @@ def simu(time, scale = 1):
 
                         pass 
                 sched.schedule_event((ddl[qnum] - sched.time), 0, qnum, DDLTASK)
-                sched.order()
 
             elif state[qnum] == TX:
                 if customer[qnum] < BUFFERSIZE:
@@ -115,27 +113,24 @@ def simu(time, scale = 1):
                     
 
                 else:
-                    bufferLoss[qnum] += 1 #buffer loss
+                    bufferLoss[qnum] += pktsize #buffer loss
 
             else: # if node is RX state
                 if customer[qnum] < BUFFERSIZE:
                     bufferedPktSize[qnum].append(pktsize)
                     customer[qnum] +=1
                 else:
-                    bufferLoss[qnum] += 1 #buffer loss
+                    bufferLoss[qnum] += pktsize #buffer loss
 
         else: #ddltask
             for node in receiver[qnum]:
-                # print(qnum)
-                # print(lock[node])
-                # print(state[node])
-                totalReceivedPkt[node] += 1 #pkt received by this node add one, no matter if it's collision
+                totalReceivedPkt[node] += pktsize #pkt received by this node add one, no matter if it's collision
                 if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
-                    successReceivedPkt[node] += 1
-            totalSentPkt[qnum] += 1
+                    successReceivedPkt[node] += pktsize
+            totalSentPkt[qnum] += pktsize
             for node in receiver[qnum]:
                 if len(lock[node]) == 1 and qnum in lock[node] and state[node] == RX:
-                    successSentPkt[qnum] += 1
+                    successSentPkt[qnum] += pktsize
                     break
 
 
@@ -143,7 +138,6 @@ def simu(time, scale = 1):
                 ddl[qnum] = sched.time + bufferedPktSize[qnum].pop(0)/SPEED
                 customer[qnum] -= 1
                 sched.schedule_event((ddl[qnum] - sched.time), 0, qnum, DDLTASK)
-                sched.order()
                 for q in neighbour[qnum]: #make sure all neighbours entering idle state will be involved in qnum
                     if state[q] == IDLE:
                         state[q] = RX
@@ -164,7 +158,7 @@ def simu(time, scale = 1):
                         customer[q] -=1
 
                         for i in neighbour[q]:
-                            if i in neighbour[qnum]: #if this node is the shared neighbour of qnum and q, we have to do special handing
+                            if i in neighbour[qnum]: #if this node is the shared neighbour of qnum and q, we have to do special handling
                                 if state[i] == IDLE:
                                     if len(lock[i]) == 0 and customer[i] == 0:
                                         state[i] = RX
@@ -187,7 +181,6 @@ def simu(time, scale = 1):
                             else:
                                 pass 
                         sched.schedule_event((ddl[q] - sched.time), 0, q, DDLTASK)
-                        sched.order()
 
                 receiver[qnum] = []
                 bufferedPktSize[qnum] = []
@@ -226,7 +219,7 @@ def simu(time, scale = 1):
     fp = open(filename1, "a")
     #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     collisionrate = {i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)}
-    fp.write(str(collisionrate[0]) + "," +",".join([str(collisionrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.write(",".join([str(collisionrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename2 = "loss1000" + ".csv"
@@ -234,14 +227,14 @@ def simu(time, scale = 1):
     fp = open(filename2, "a")
     #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
-    fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.write(",".join([str(lossrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename3 = "throughput1000" + ".csv"
     #filename2 = "loss_scale" + ".csv"
     fp = open(filename3, "a")
-    #fp.write(str(successReceivedPkt[0]/10) + "," +",".join([str(successReceivedPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
-    fp.write(str(successSentPkt[0]/10) + "," +",".join([str(successSentPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    # fp.write(",".join([str(successReceivedPkt[el]/time/SPEED) for el in range(node_amount)]) +"," + str(scale)+ str(sum(bufferTotal[n] for n in range(node_amount))/time/SPEED)+ "\n")
+    fp.write(",".join([str(successSentPkt[el]/time/SPEED) for el in range(node_amount)]) +"," + str(scale) + str(sum(bufferTotal[n] for n in range(node_amount))/time/SPEED) + "\n")
     #lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
     #fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
     fp.close()
@@ -257,19 +250,19 @@ if __name__ == '__main__':
     filename1 = "collision1000" + ".csv"
     fp = open(filename1, "a")
     #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
-    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale, rho\n")
     fp.close()
 
     filename2 = "loss1000" + ".csv"
     fp = open(filename2, "a")
     #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
-    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale, rho\n")
     fp.close()
 
     filename3 = "throughput1000" + ".csv"
     fp = open(filename3, "a")
     #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
-    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
+    fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale,rho\n")
     fp.close()
 
 

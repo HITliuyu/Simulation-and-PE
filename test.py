@@ -12,7 +12,7 @@ IDLE = 'idle'
 TX = 'tx'
 RX = 'rx'
 BUFFERSIZE = 30
-SPEED = 1024*1024
+SPEED =8*1024*1024
 
 DDLTASK = 'ddltask' #deadline task
 TASK = 'task' #arrival task
@@ -211,18 +211,19 @@ def simu(time, scale = 1):
     # print("totally received pkt:",totalReceivedPkt)
     # print("successfully received pkt:",successReceivedPkt)
     # print("collision pkt:",collisionPkt)
-    # print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
+    print("collision rate:" ,{i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)})
 
     # print("totally sent pkt:",totalSentPkt)
     # print("successfully sent pkt:",successSentPkt)
     # print("Sent collision pkt:",collisionSentPkt)
-    # print("Sent collision rate:" ,{i:(collisionSentPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
+    print("Sent collision rate:" ,{i:(collisionSentPkt[i] / totalSentPkt[i]) for i in range(node_amount)})
     filename1 = "collision1000" + ".csv"
     #filename1 = "collision_scale" + ".csv"
     fp = open(filename1, "a")
     #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     collisionrate = {i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)}
-    fp.write(str(collisionrate[0]) + "," +",".join([str(collisionrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.write(",".join([str(collisionrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
+    # fp.write(str(collisionrate[0]) + "," +",".join([str(collisionrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename2 = "loss1000" + ".csv"
@@ -230,14 +231,14 @@ def simu(time, scale = 1):
     fp = open(filename2, "a")
     #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
-    fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
+    fp.write(",".join([str(lossrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename3 = "throughput1000" + ".csv"
     #filename2 = "loss_scale" + ".csv"
     fp = open(filename3, "a")
     #fp.write(str(successReceivedPkt[0]/10) + "," +",".join([str(successReceivedPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
-    fp.write(str(successSentPkt[0]/10) + "," +",".join([str(successSentPkt[el+1]/10) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
+    fp.write(",".join([str(successSentPkt[el]/10) for el in range(node_amount)]) +"," + str(scale)+ "\n")
     #lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
     #fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
     fp.close()
