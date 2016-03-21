@@ -12,11 +12,12 @@ TX = 'tx'
 RX = 'rx'
 BUFFERSIZE = 30
 SPEED =8*1024*1024   #transmitted speed
-WAITING = 0.0001
+WAITING = 0.0001     #time between two consecutive packet
 
-DDLTASK = 'ddl_task' #deadline task
+DDLTASK = 'ddl_task' #deadline task, means the packet has been completely sent
 ARITASK = 'arrival_task' #arrival task
-RETXTASK = 'retransmit_task'
+RETXTASK = 'retransmit_task'  #retransmit task, when there are consecutive packets in the queue, after finishing previous one,
+                              #it waits WAITING seconds and then retransmit
 
 class EventScheduler:
     def __init__(self):
@@ -77,9 +78,9 @@ def simu(time, scale = 1):
         sched.schedule_event(numpy.random.rayleigh(scale), numpy.random.binomial(4150,0.662) + 32, i, ARITASK)
     sched.order()
 
-    # filename = "simudata" + str(scale) + ".csv"
-    # fp = open(filename, "w")
-    # fp.write("time,q0len,q1len\n")
+    filename = "simudata" + str(scale) + ".csv"
+    fp = open(filename, "w")
+    fp.write("time,q0len,q1len\n")
 
     ###################################################################
     # main loop of simulator
@@ -108,8 +109,6 @@ def simu(time, scale = 1):
                             lock[q].append(qnum)
                         receiver[qnum].append(q)
                     else:
-                        # tx_txCollision[q] += 1
-
                         pass 
                 sched.schedule_event((ddl[qnum] - sched.time), 0, qnum, DDLTASK)
 
@@ -169,7 +168,6 @@ def simu(time, scale = 1):
                                     lock[i].append(q)
                                     receiver[q].append(i)
                                 else:
-                                    # tx_txCollision[i] += 1
                                     pass
 
                             elif state[i] == IDLE:
@@ -181,7 +179,6 @@ def simu(time, scale = 1):
                                     lock[i].append(q)
                                 receiver[q].append(i)
                             else:
-                                # tx_txCollision[i] += 1
                                 pass 
                         sched.schedule_event((ddl[q] - sched.time), 0, q, DDLTASK)
                 receiver[qnum] = []
@@ -209,7 +206,6 @@ def simu(time, scale = 1):
                                     lock[i].append(q)
                                     receiver[q].append(i)
                                 else:
-                                    # tx_txCollision[i] += 1
                                     pass
 
                             elif state[i] == IDLE:
@@ -221,7 +217,6 @@ def simu(time, scale = 1):
                                     lock[i].append(q)
                                 receiver[q].append(i)
                             else:
-                                # tx_txCollision[i] += 1
                                 pass 
                         sched.schedule_event((ddl[q] - sched.time), 0, q, DDLTASK)
 
@@ -246,11 +241,10 @@ def simu(time, scale = 1):
                             lock[q].append(qnum)
                         receiver[qnum].append(q)
                     else:
-                        # tx_txCollision[q] += 1
                         pass 
 
-    #     fp.write(str(sched.time) + "," + ",".join([str(el) for el in customer.values()]) + "\n")
-    # fp.close()
+        fp.write(str(sched.time) + "," + ",".join([str(el) for el in customer.values()]) + "\n")
+    fp.close()
 
     ###################################################################
     # print output infomation
@@ -262,8 +256,6 @@ def simu(time, scale = 1):
     print("tx_txCollision :"+str(tx_txCollision) + "\n")
 
     for i in range(len(totalReceivedPkt)):
-        # successReceivedPkt[i] = successReceivedPkt[i] - tx_txCollision[i]
-        # successSentPkt[i] = successSentPkt[i] - tx_txCollision[i]
         collisionPkt[i] = totalReceivedPkt[i] - successReceivedPkt[i]
         collisionSentPkt[i] = totalSentPkt[i] - successSentPkt[i]
 
@@ -282,28 +274,20 @@ def simu(time, scale = 1):
     ###################################################################
 
     filename1 = "collision1000" + ".csv"
-    #filename1 = "collision_scale" + ".csv"
     fp = open(filename1, "a")
-    #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     collisionrate = {i:(collisionPkt[i] / totalReceivedPkt[i]) for i in range(node_amount)}
     fp.write(",".join([str(collisionrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename2 = "loss1000" + ".csv"
-    #filename2 = "loss_scale" + ".csv"
     fp = open(filename2, "a")
-    #fp.write(str(successReceivedPkt[0]) + "," +",".join([str(successReceivedPkt[el+1]) for el in range(node_amount-1)]) +"," + str(scale)+ "\n")
     lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
     fp.write(",".join([str(lossrate[el]) for el in range(node_amount)]) +"," + str(scale) + "\n")
     fp.close()
 
     filename3 = "throughput1000" + ".csv"
-    #filename2 = "loss_scale" + ".csv"
     fp = open(filename3, "a")
-    # fp.write(",".join([str(successReceivedPkt[el]/time/SPEED) for el in range(node_amount)]) +"," + str(scale)+ str(sum(bufferTotal[n] for n in range(node_amount))*2779/time/SPEED)+ "\n")
     fp.write(",".join([str(successSentPkt[el]*2779/time/SPEED) for el in range(node_amount)]) +"," + str(scale) +","+ str(sum(bufferTotal[n] for n in range(node_amount))*2779/time/SPEED) + "\n")
-    #lossrate = {i:(bufferLoss[i] / bufferTotal[i]) for i in range(node_amount)}
-    #fp.write(str(lossrate[0]) + "," +",".join([str(lossrate[el+1]) for el in range(node_amount-1)]) +"," + str(scale) + "\n")
     fp.close()
 
 
@@ -311,24 +295,20 @@ def simu(time, scale = 1):
 
         
 
-    
-# when scale = 0.003, I get good queueing data in buffer
+
 if __name__ == '__main__':
     filename1 = "collision1000" + ".csv"
     fp = open(filename1, "a")
-    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
     fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
     fp.close()
 
     filename2 = "loss1000" + ".csv"
     fp = open(filename2, "a")
-    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
     fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
     fp.close()
 
     filename3 = "throughput1000" + ".csv"
     fp = open(filename3, "a")
-    #fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale\n")
     fp.write("node0, node1, node2, node3, node4, node5,node6, node7, node8, node9, scale,rho\n")
     fp.close()
 
